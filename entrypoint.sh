@@ -10,20 +10,10 @@ if [[ -z "${UUID}" ]]; then
 fi
 echo ${UUID}
 
-if [[ -z "${AlterID}" ]]; then
-  AlterID="64"
+if [[ -z "${Spass}" ]]; then
+  Spass="4431088"
 fi
-echo ${AlterID}
-
-if [[ -z "${V2_Path}" ]]; then
-  V2_Path="/static"
-fi
-echo ${V2_Path}
-
-if [[ -z "${V2_QR_Path}" ]]; then
-  V2_QR_Path="qr_img"
-fi
-echo ${V2_QR_Path}
+echo ${Spass}
 
 rm -rf /etc/localtime
 ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
@@ -44,96 +34,167 @@ wget --no-check-certificate -qO 'v2ray.zip' ${V2RAY_URL}
 unzip v2ray.zip
 rm -rf v2ray.zip
 
-C_VER="v1.0.3"
-mkdir /caddybin
-cd /caddybin
-CADDY_URL="https://github.com/caddyserver/caddy/releases/download/$C_VER/caddy_${C_VER}_linux_amd64.tar.gz"
-echo ${CADDY_URL}
-wget --no-check-certificate -qO 'caddy.tar.gz' ${CADDY_URL}
-tar xvf caddy.tar.gz
-rm -rf caddy.tar.gz
-chmod +x caddy
-
-cd /wwwroot
-tar xvf wwwroot.tar.gz
-rm -rf wwwroot.tar.gz
-
 cat <<-EOF > /v2raybin/config.json
 {
     "log":{
         "loglevel":"warning"
     },
-    "inbound":{
-        "protocol":"vmess",
-        "listen":"127.0.0.1",
-        "port":2333,
-        "settings":{
-            "clients":[
-                {
-                    "id":"${UUID}",
-                    "level":1,
-                    "alterId":${AlterID}
-                }
-            ]
-        },
-        "streamSettings":{
-            "network":"ws",
-            "wsSettings":{
-                "path":"${V2_Path}"
+	"inbounds": [
+		{
+			"port": 4433,
+			"protocol": "vmess",
+			"settings": {
+				"clients": [
+					{
+						"id": "${UUID}",
+						"level": 1,
+						"alterId": 0
+					}
+				]
+			},
+			"streamSettings": {
+				"network": "tcp"
+			},
+			"sniffing": {
+				"enabled": true,
+				"destOverride": [
+					"http",
+					"tls"
+				]
+			}
+		}
+		,
+        {
+            "protocol": "shadowsocks",
+            "port": 443,
+            "settings": {
+                "method": "aes-256-cfb",
+                "password": "${Spass}",
+                "network": "tcp,udp",
+                "level": 1,
+                "ota": false
             }
         }
-    },
-    "outbound":{
-        "protocol":"freedom",
-        "settings":{
+		//include_socks
+		//include_mtproto
+		//include_in_config
+		//
+	],
+	"outbounds": [
+		{
+			"protocol": "freedom",
+			"settings": {
+				"domainStrategy": "UseIP"
+			},
+			"tag": "direct"
+		},
+		{
+			"protocol": "blackhole",
+			"settings": {},
+			"tag": "blocked"
+        },
+		{
+			"protocol": "mtproto",
+			"settings": {},
+			"tag": "tg-out"
+		}
+		//include_out_config
+		//
+	],
+	"dns": {
+		"servers": [
+			"https+local://cloudflare-dns.com/dns-query",
+			"1.1.1.1",
+			"1.0.0.1",
+			"8.8.8.8",
+			"8.8.4.4",
+			"localhost"
+		]
+	},
+	"routing": {
+		"domainStrategy": "IPOnDemand",	
+		"rules": [
+			{
+				"type": "field",
+				"ip": [
+					"0.0.0.0/8",
+					"10.0.0.0/8",
+					"100.64.0.0/10",
+					"127.0.0.0/8",
+					"169.254.0.0/16",
+					"172.16.0.0/12",
+					"192.0.0.0/24",
+					"192.0.2.0/24",
+					"192.168.0.0/16",
+					"198.18.0.0/15",
+					"198.51.100.0/24",
+					"203.0.113.0/24",
+					"::1/128",
+					"fc00::/7",
+					"fe80::/10"
+				],
+				"outboundTag": "blocked"
+			},
+			{
+				"type": "field",
+				"inboundTag": ["tg-in"],
+				"outboundTag": "tg-out"
+			}
+			,
+			{
+				"type": "field",
+				"domain": [
+					"domain:epochtimes.com",
+					"domain:epochtimes.com.tw",
+					"domain:epochtimes.fr",
+					"domain:epochtimes.de",
+					"domain:epochtimes.jp",
+					"domain:epochtimes.ru",
+					"domain:epochtimes.co.il",
+					"domain:epochtimes.co.kr",
+					"domain:epochtimes-romania.com",
+					"domain:erabaru.net",
+					"domain:lagranepoca.com",
+					"domain:theepochtimes.com",
+					"domain:ntdtv.com",
+					"domain:ntd.tv",
+					"domain:ntdtv-dc.com",
+					"domain:ntdtv.com.tw",
+					"domain:minghui.org",
+					"domain:renminbao.com",
+					"domain:dafahao.com",
+					"domain:dongtaiwang.com",
+					"domain:falundafa.org",
+					"domain:wujieliulan.com",
+					"domain:ninecommentaries.com",
+					"domain:shenyun.com"
+				],
+				"outboundTag": "blocked"
+			}			,
+                {
+                    "type": "field",
+                    "protocol": [
+                        "bittorrent"
+                    ],
+                    "outboundTag": "blocked"
+                }
+			//include_ban_ad
+			//include_rules
+			//
+		]
+	},
+	"transport": {
+		"kcpSettings": {
+            "uplinkCapacity": 100,
+            "downlinkCapacity": 100,
+            "congestion": true
         }
-    }
+	}
 }
 EOF
 
 echo /v2raybin/config.json
 cat /v2raybin/config.json
 
-cat <<-EOF > /caddybin/Caddyfile
-http://0.0.0.0:${PORT}
-{
-	root /wwwroot
-	index index.html
-	timeouts none
-	proxy ${V2_Path} localhost:2333 {
-		websocket
-		header_upstream -Origin
-	}
-}
-EOF
-
-cat <<-EOF > /v2raybin/vmess.json
-{
-    "v": "2",
-    "ps": "${AppName}.herokuapp.com",
-    "add": "${AppName}.herokuapp.com",
-    "port": "443",
-    "id": "${UUID}",
-    "aid": "${AlterID}",
-    "net": "ws",
-    "type": "none",
-    "host": "",
-    "path": "${V2_Path}",
-    "tls": "tls"
-}
-EOF
-
-if [ "$AppName" = "no" ]; then
-  echo "不生成二维码"
-else
-  mkdir /wwwroot/${V2_QR_Path}
-  vmess="vmess://$(cat /v2raybin/vmess.json | base64 -w 0)"
-  Linkbase64=$(echo -n "${vmess}" | tr -d '\n' | base64 -w 0)
-  echo "${Linkbase64}" | tr -d '\n' > /wwwroot/${V2_QR_Path}/index.html
-  echo -n "${vmess}" | qrencode -s 6 -o /wwwroot/${V2_QR_Path}/v2.png
-fi
-
 cd /v2raybin
 ./v2ray -config config.json &
-cd /caddybin
-./caddy -conf="Caddyfile"
