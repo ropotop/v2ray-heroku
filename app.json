@@ -11,7 +11,7 @@
        "description": "Vmess协议默认UUID，http://www.uuid.online/ 在线生成UUID）",
        "value": "71d6dfd1-0bfb-40a2-97e9-ff996dc83a28"
      },
-    "Spass": {
+    "SSPASS": {
        "description": "SS密码",
        "value": "4431088"
      }
