@@ -10,10 +10,10 @@ if [[ -z "${UUID}" ]]; then
 fi
 echo ${UUID}
 
-if [[ -z "${Spass}" ]]; then
-  Spass="4431088"
+if [[ -z "${SSPASS}" ]]; then
+  SSPASS="4431088"
 fi
-echo ${Spass}
+echo ${SSPASS}
 
 rm -rf /etc/localtime
 ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
@@ -41,7 +41,7 @@ cat <<-EOF > /v2raybin/config.json
     },
 	"inbounds": [
 		{
-			"port": 4433,
+			"port": 44330,
 			"protocol": "vmess",
 			"settings": {
 				"clients": [
@@ -66,10 +66,10 @@ cat <<-EOF > /v2raybin/config.json
 		,
         {
             "protocol": "shadowsocks",
-            "port": 443,
+            "port": 4433,
             "settings": {
                 "method": "aes-256-cfb",
-                "password": "${Spass}",
+                "password": "${SSPASS}",
                 "network": "tcp,udp",
                 "level": 1,
                 "ota": false
