@@ -6,7 +6,7 @@ fi
 echo ${VER}
 
 if [[ -z "${UUID}" ]]; then
-  UUID="ffc17112-b755-499d-be9f-91a828bd3197"
+  UUID="71d6dfd1-0bfb-40a2-97e9-ff996dc83a28"
 fi
 echo ${UUID}
 
